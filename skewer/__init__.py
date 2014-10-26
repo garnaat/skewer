@@ -70,8 +70,9 @@ class Skewer(object):
         self.es.indices.delete('skewer')
 
     def index_aws(self, arn_pattern='arn:aws:*:*:*:*/*'):
-        now = datetime.datetime.utcnow().isoformat()
+        now = datetime.datetime.utcnow()
         now = pytz.utc.localize(now)
+        now = now.isoformat()
         self.create_template()
         all_services = set()
         all_regions = set()
