@@ -19,6 +19,7 @@ import time
 import datetime
 import logging
 
+import pytz
 import elasticsearch
 import skew
 
@@ -70,6 +71,7 @@ class Skewer(object):
 
     def index_aws(self, arn_pattern='arn:aws:*:*:*:*/*'):
         now = datetime.datetime.utcnow().isoformat()
+        now = pytz.utc.localize(now)
         self.create_template()
         all_services = set()
         all_regions = set()
