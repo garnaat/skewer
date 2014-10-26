@@ -16,6 +16,7 @@ import os
 __version__ = open(os.path.join(os.path.dirname(__file__), '_version')).read()
 
 import time
+import datetime
 import logging
 
 import elasticsearch
@@ -49,7 +50,7 @@ class Skewer(object):
             hosts=[{'host': host, 'port': port}])
 
     def _index_name(self):
-        return 'skewer-%d' % self.ts
+        return 'skewer'
 
     def create_template(self):
         template_path = os.path.join(
@@ -65,15 +66,16 @@ class Skewer(object):
 
     def clear_index(self):
         LOG.debug('Deleting existing indices')
-        self.es.indices.delete('skewer-*')
+        self.es.indices.delete('skewer')
 
     def index_aws(self, arn_pattern='arn:aws:*:*:*:*/*'):
+        now = datetime.datetime.utcnow()
         self.create_template()
         all_services = set()
         all_regions = set()
         all_accounts = set()
 
-        new_index_name = self._index_name()
+        index_name = self._index_name()
 
         LOG.debug('using ARN: %s', arn_pattern)
 
@@ -86,20 +88,14 @@ class Skewer(object):
             resource.data['region'] = region
             resource.data['account_id'] = acct_id
             resource.data['arn'] = resource.arn
+            resource.data['timestamp'] = now
             all_services.add(service)
             all_regions.add(region)
             all_accounts.add(acct_id)
-            self.es.index(new_index_name, doc_type=resource.resourcetype,
+            self.es.index(index_name, doc_type=resource.resourcetype,
                           id=str(resource), body=resource.data)
             i += 1
-            LOG.debug('indexed %d resources', i)
-
-        # Delete old indexes if they exist and create new aliases
-        if self.es.indices.exists(['skewer']):
-            self.es.indices.delete(['skewer'])
-        if self.es.indices.exists([new_index_name]):
-            self.es.indices.put_alias(index=[new_index_name],
-                                      name='skewer')
+        LOG.debug('indexed %d resources', i)
 
         # Write updated metadata to ES
         metadata = {
