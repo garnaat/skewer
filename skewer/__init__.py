@@ -69,7 +69,7 @@ class Skewer(object):
         self.es.indices.delete('skewer')
 
     def index_aws(self, arn_pattern='arn:aws:*:*:*:*/*'):
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.utcnow().isoformat()
         self.create_template()
         all_services = set()
         all_regions = set()
@@ -89,11 +89,13 @@ class Skewer(object):
             resource.data['account_id'] = acct_id
             resource.data['arn'] = resource.arn
             resource.data['timestamp'] = now
+            
             all_services.add(service)
             all_regions.add(region)
             all_accounts.add(acct_id)
+            id = '%s-%s' % (resource.arn, now)
             self.es.index(index_name, doc_type=resource.resourcetype,
-                          id=str(resource), body=resource.data)
+                          id=id, body=resource.data)
             i += 1
         LOG.debug('indexed %d resources', i)
 
